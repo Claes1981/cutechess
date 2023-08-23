@@ -59,6 +59,7 @@ class LIB_EXPORT WesternBoard : public Board
 		virtual int height() const;
 		virtual Result result();
 		virtual int reversibleMoveCount() const;
+		virtual bool winPossible(Side side) const;
 
 	protected:
 		/*! The king's castling side. */
@@ -187,6 +188,10 @@ class LIB_EXPORT WesternBoard : public Board
 		 * Defaults: 2 (c-file) and width() - 2 (normally g-file)
 		 */
 		virtual int castlingFile(CastlingSide castlingSide) const;
+		/*!
+		 * Returns true if \a side knight-defends \a square.
+		 */
+		virtual bool defendedByKnight(Side side, int square) const;
 		/*!
 		 * Returns true if \a side is under attack at \a square.
 		 * If \a square is 0, then the king square is used.

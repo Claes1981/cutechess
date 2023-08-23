@@ -25,6 +25,7 @@
 #include <QStringList>
 #include <QFile>
 #include <QMetaType>
+#include <QSysInfo>
 
 #include <mersenne.h>
 #include <enginemanager.h>
@@ -143,6 +144,19 @@ bool parseEngine(const QStringList& args, EngineData& data)
 		{
 			data.config.setClaimsValidated(false);
 		}
+		// Scaling timeouts
+		else if (name == "tscale")
+		{
+			bool ok = false;
+			double value = val.toDouble(&ok);
+			if (!ok || value < EngineConfiguration::timeoutScaleMin
+				|| value > EngineConfiguration::timeoutScaleMax)
+			{
+				qWarning() << "Invalid timeout scale factor:" << val;
+				return false;
+			}
+			data.config.setTimeoutScale(value);
+		}
 		// Time control (moves/time+increment)
 		else if (name == "tc")
 		{
@@ -255,6 +269,7 @@ EngineMatch* parseMatch(const QStringList& args, QObject* parent)
 	parser.addOption("-rounds", QVariant::Int, 1, 1);
 	parser.addOption("-sprt", QVariant::StringList);
 	parser.addOption("-ratinginterval", QVariant::Int, 1, 1);
+	parser.addOption("-outcomeinterval", QVariant::Int, 1, 1);
 	parser.addOption("-resultformat", QVariant::String, 1, 1);
 	parser.addOption("-debug", QVariant::Bool, 0, 0);
 	parser.addOption("-openings", QVariant::StringList);
@@ -426,7 +441,10 @@ EngineMatch* parseMatch(const QStringList& args, QObject* parent)
 		// Interval for rating list updates
 		else if (name == "-ratinginterval")
 			match->setRatingInterval(value.toInt());
-		// Interval for rating list updates
+		// Interval for outcome updates
+		else if (name == "-outcomeinterval")
+			match->setOutcomeInterval(value.toInt());
+		// Format of the result list
 		else if (name == "-resultformat")
 		{
 			if (value == "help")
@@ -444,7 +462,15 @@ EngineMatch* parseMatch(const QStringList& args, QObject* parent)
 					 s.append(" ");
 				}
 				qInfo() << "  " << qUtf8Printable(s);
-				return 0;
+				qInfo() <<"\nNamed shortcuts:";
+				const auto& map2(tournament->resultFieldGroups());
+				for (auto it = map2.constBegin(); it != map2.constEnd(); ++it)
+					qInfo() << qUtf8Printable(it.key()) << "\n  "
+						<< qUtf8Printable(it.value());
+
+				delete match;
+				delete tournament;
+				return nullptr;
 			}
 			tournament->setResultFormat(value.toString().left(256).trimmed());
 		}
@@ -720,14 +746,16 @@ int main(int argc, char* argv[])
 	{
 		if (arg == "-v" || arg == "--version" || arg == "-version")
 		{
-			out << "cutechess-cli " << CUTECHESS_CLI_VERSION << endl;
-			out << "Using Qt version " << qVersion() << endl << endl;
-			out << "Copyright (C) 2008-2020 Ilari Pihlajisto, Arto Jonsson ";
-			out << "and contributors" << endl;
+			out << "cutechess-cli " << CUTECHESS_VERSION << '\n';
+			out << "Using Qt version " << qVersion() << '\n';
+			out << "Running on " << QSysInfo::prettyProductName();
+			out << "/" << QSysInfo::currentCpuArchitecture() << '\n' << '\n';
+			out << "Copyright (C) 2008-2023 Ilari Pihlajisto, Arto Jonsson ";
+			out << "and contributors" << '\n';
 			out << "This is free software; see the source for copying ";
-			out << "conditions.  There is NO" << endl << "warranty; not even for ";
+			out << "conditions.  There is NO" << '\n' << "warranty; not even for ";
 			out << "MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.";
-			out << endl << endl;
+			out << '\n' << '\n';
 
 			return 0;
 		}
@@ -735,7 +763,7 @@ int main(int argc, char* argv[])
 		{
 			const auto engines = app.engineManager()->engines();
 			for (const auto& engine : engines)
-				out << engine.name() << endl;
+				out << engine.name() << '\n';
 
 			return 0;
 		}

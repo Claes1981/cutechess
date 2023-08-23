@@ -22,6 +22,8 @@
 #include "playerbuilder.h"
 #include "timecontrol.h"
 #include "board/side.h"
+#include <QVector>
+#include <QMap>
 
 class OpeningBook;
 
@@ -94,13 +96,28 @@ class LIB_EXPORT TournamentPlayer
 		int blackLosses() const;
 		/*! Returns the player's total score in the tournament. */
 		int score() const;
-		/*! Adds \a score to the player's score in the tournament. */
+		/*!
+		 * Adds \a score to the player's score in the tournament for
+		 * playing side \a side.
+		 */
 		void addScore(Chess::Side side, int score);
+		/*!
+		 * Adds a game outcome of \a type with description \a str
+		 * to the player's statistics.
+		 */
+		void addOutcome(int type, QString str);
 		/*!
 		 * Returns the total number of games the player has finished
 		 * in the tournament.
 		 */
 		int gamesFinished() const;
+		/*!
+		 * Returns the player's count of game outcomes of type
+		 * \a type.
+		 */
+		int outcomes(int type) const;
+		/*! Returns the player's game outcome statistics. */
+		const QMap<QString, int>& outcomeMap() const;
 
 	private:
 		PlayerBuilder* m_builder;
@@ -113,6 +130,8 @@ class LIB_EXPORT TournamentPlayer
 		int m_whiteWins;
 		int m_whiteDraws;
 		int m_whiteLosses;
+		QVector<int> m_terminations;
+		QMap <QString, int> m_outcome;
 };
 
 #endif // TOURNAMENTPLAYER_H

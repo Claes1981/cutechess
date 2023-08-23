@@ -229,7 +229,7 @@ void BoardScene::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
 	}
 
 	if (m_targets.contains(piece)
-	&&  QSettings().value("ui/highlight_legal_moves", true).toBool())
+	&&  m_settings.value("ui/highlight_legal_moves", true).toBool())
 	{
 		m_highlightPiece = piece;
 		m_squares->setHighlights(m_targets.values(piece));
@@ -418,7 +418,7 @@ GraphicsPiece* BoardScene::createPiece(const Chess::Piece& piece)
 	Q_ASSERT(m_renderer != nullptr);
 	Q_ASSERT(m_squares != nullptr);
 
-	if (!piece.isValid())
+	if (!piece.isValid() && !piece.isWall())
 		return nullptr;
 
 	return new GraphicsPiece(piece,
@@ -439,7 +439,8 @@ QPropertyAnimation* BoardScene::pieceAnimation(GraphicsPiece* piece,
 	anim->setStartValue(startPoint);
 	anim->setEndValue(endPoint);
 	anim->setEasingCurve(QEasingCurve::InOutQuad);
-	anim->setDuration(300);
+	int duration = qMin(m_settings.value("ui/move_animation_duration", 300).toInt(), 400);
+	anim->setDuration(duration);
 
 	piece->setParentItem(nullptr);
 	piece->setPos(startPoint);
@@ -525,21 +526,35 @@ void BoardScene::addMoveArrow(const QPointF& sourcePos,
 			      const QPointF& targetPos)
 {
 	Q_ASSERT(m_moveArrows != nullptr);
+	if (!m_settings.value("ui/show_move_arrows", true).toBool())
+		return;
 
-	QLineF l1(sourcePos, targetPos);
-	QLineF l2(l1.normalVector());
+	QPolygonF arrow;
+	QLineF origline(sourcePos, targetPos);
 
-	l1.setLength(l1.length() - s_squareSize / 2.5);
-	l2.setLength(s_squareSize / 3.0);
-	l2.translate(l2.dx() / -2.0, l2.dy() / -2.0);
+	float size = s_squareSize / 7.0;
+	float skew = size * 0.5;
+	float risex = 3;
+	float risey = 2;
+	float length = origline.length();
+	QColor color;
 
-	QPolygonF polygon;
-	polygon << l2.p1() << l1.p2() << l2.p2();
+	color = QColor(Qt::green).darker();
 
-	QGraphicsPolygonItem* item = new QGraphicsPolygonItem(polygon);
-	item->setPen(QPen(QBrush(Qt::yellow), 2));
-	item->setBrush(Qt::yellow);
-	item->setOpacity(0.6);
+	arrow << QPointF(            0,             0);
+	arrow << QPointF(-risex * size,  risey * size);
+	arrow << QPointF(-risex * size,          skew);
+	arrow << QPointF(      -length,          skew);
+	arrow << QPointF(      -length,         -skew);
+	arrow << QPointF(-risex * size,         -skew);
+	arrow << QPointF(-risex * size, -risey * size);
+
+	QGraphicsPolygonItem* item = new QGraphicsPolygonItem(arrow);
+	item->setPen(QPen(QBrush(color), 1));
+	item->setBrush(color);
+	item->setOpacity(0.5);
+	item->setRotation(-origline.angle());
+	item->setPos(targetPos);
 
 	m_moveArrows->addToGroup(item);
 }

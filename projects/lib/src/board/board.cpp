@@ -18,6 +18,10 @@
 
 #include "board.h"
 #include <QStringList>
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+#include <QStringView>
+#endif
+#include <QRegularExpression>
 #include "zobrist.h"
 
 
@@ -304,12 +308,20 @@ Square Board::chessSquare(const QString& str) const
 	if (coordinateSystem() == NormalCoordinates)
 	{
 		file = str.at(0).toLatin1() - 'a';
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+		rank = QStringView{str}.mid(1).toInt(&ok) - 1;
+#else
 		rank = str.midRef(1).toInt(&ok) - 1;
+#endif
 	}
 	else
 	{
 		int tmp = str.length() - 1;
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+		file = m_width - QStringView{str}.left(tmp).toInt(&ok);
+#else
 		file = m_width - str.leftRef(tmp).toInt(&ok);
+#endif
 		rank = m_height - (str.at(tmp).toLatin1() - 'a') - 1;
 	}
 
@@ -354,7 +366,7 @@ QString Board::moveString(const Move& move, MoveNotation notation)
 Move Board::moveFromLanString(const QString& istr)
 {
 	QString str(istr);
-	str.remove(QRegExp("[x=+#!?]"));
+	str.remove(QRegularExpression("[x=+#!?]"));
 	int len = str.length();
 	if (len < 4)
 		return Move();
@@ -576,7 +588,11 @@ bool Board::setFenString(const QString& fen)
 			int nempty;
 			if (i < (token->length() - 1) && token->at(i + 1).isDigit())
 			{
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+				nempty = QStringView{(*token)}.mid(i, 2).toInt();
+#else
 				nempty = token->midRef(i, 2).toInt();
+#endif
 				i++;
 			}
 			else
@@ -902,6 +918,11 @@ Result Board::tablebaseResult(unsigned int* dtm) const
 {
 	Q_UNUSED(dtm);
 	return Result();
+}
+
+bool Board::winPossible(Chess::Side) const
+{
+	return true;
 }
 
 } // namespace Chess

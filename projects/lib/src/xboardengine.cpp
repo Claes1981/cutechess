@@ -22,6 +22,8 @@
 #include <QString>
 #include <QStringList>
 #include <QTimer>
+#include <QRandomGenerator>
+#include <QRegularExpression>
 
 #include <climits>
 
@@ -62,6 +64,7 @@ QString variantToXboard(const QString& str)
 }
 
 const int s_infiniteSec = 86400;
+const int s_initTimerDefaultInterval = 8000;
 
 } // anonymous namespace
 
@@ -82,11 +85,19 @@ XboardEngine::XboardEngine(QObject* parent)
 	  m_initTimer(new QTimer(this))
 {
 	m_initTimer->setSingleShot(true);
-	m_initTimer->setInterval(8000);
+	m_initTimer->setInterval(s_initTimerDefaultInterval);
 	connect(m_initTimer, SIGNAL(timeout()), this, SLOT(initialize()));
 
 	addVariant("standard");
 	setName("XboardEngine");
+}
+
+void XboardEngine::applyConfiguration(const EngineConfiguration& configuration)
+{
+	ChessEngine::applyConfiguration(configuration);
+
+	int timeout = s_initTimerDefaultInterval * configuration.timeoutScale();
+	m_initTimer->setInterval(timeout);
 }
 
 void XboardEngine::startProtocol()
@@ -390,7 +401,7 @@ bool XboardEngine::sendPing()
 
 	// Ping the engine with a random number. The engine should
 	// later send the number back at us.
-	m_lastPing = (qrand() % 32) + 1;
+	m_lastPing = (QRandomGenerator::global()->generate() % 32) + 1;
 	write(QString("ping %1").arg(m_lastPing));
 	return true;
 }
@@ -437,7 +448,7 @@ EngineOption* XboardEngine::parseOption(const QString& line)
 	}
 	if (type == "spin" || type == "slider")
 	{
-		QStringList params(line.mid(end + 1).split(' ', QString::SkipEmptyParts));
+		QStringList params(line.mid(end + 1).split(' ', Qt::SkipEmptyParts));
 		if (params.size() != 3)
 			return nullptr;
 
@@ -458,7 +469,7 @@ EngineOption* XboardEngine::parseOption(const QString& line)
 	}
 	if (type == "combo")
 	{
-		QStringList choices = line.mid(end + 1).split(" /// ", QString::SkipEmptyParts);
+		QStringList choices = line.mid(end + 1).split(" /// ", Qt::SkipEmptyParts);
 		if (choices.isEmpty())
 			return nullptr;
 
@@ -576,7 +587,7 @@ int XboardEngine::adaptScore(int score) const
 	if (absScore > newCECPMateScore
 	&&  absScore < newCECPMateScore + 100)
 	{
-		absScore = 2 * newCECPMateScore - 2 * absScore + m_eval.MATE_SCORE;
+		absScore = 2 * newCECPMateScore - 2 * absScore + MoveEvaluation::MATE_SCORE;
 		if (score >= 0)
 			absScore++;
 	}
@@ -584,8 +595,8 @@ int XboardEngine::adaptScore(int score) const
 	// map assumed mate scores onto equivalents w/ higher absolute values
 	int distance = 1000 - (absScore % 1000);
 	if (absScore > 9900 &&  distance < 100)
-		score = (score > 0) ? m_eval.MATE_SCORE - distance
-				    : -m_eval.MATE_SCORE + distance;
+		score = (score > 0) ? MoveEvaluation::MATE_SCORE - distance
+				    : -MoveEvaluation::MATE_SCORE + distance;
 
 	return score;
 }
@@ -639,47 +650,12 @@ void XboardEngine::parseLine(const QString& line)
 	else if (command.at(0).isDigit()
 	     && !command.contains("."))	// principal variation
 	{
-		bool ok = false;
-		int val = 0;
-		QStringRef ref(command);
-		
-		// Search depth
-		QString depth(ref.toString());
-		if (!(depth.cend() - 1)->isDigit())
-			depth.chop(1);
-		m_eval.setDepth(depth.toInt());
-
-		// Evaluation
-		if ((ref = nextToken(ref)).isNull())
-			return;
-		val = ref.toString().toInt(&ok);
-		if (ok)
+		auto eval = parsePv(command);
+		if (!eval.isEmpty())
 		{
-			if (whiteEvalPov() && side() == Chess::Side::Black)
-				val = -val;
-			m_eval.setScore(adaptScore(val));
+			m_eval = eval;
+			emit thinking(eval);
 		}
-
-		// Search time
-		if ((ref = nextToken(ref)).isNull())
-			return;
-		val = ref.toString().toInt(&ok);
-		if (ok)
-			m_eval.setTime(val * 10);
-
-		// Node count
-		if ((ref = nextToken(ref)).isNull())
-			return;
-		val = ref.toString().toULongLong(&ok);
-		if (ok)
-			m_eval.setNodeCount(val);
-
-		// Principal variation
-		if ((ref = nextToken(ref, true)).isNull())
-			return;
-		m_eval.setPv(ref.toString());
-
-		emit thinking(m_eval);
 
 		return;
 	}
@@ -738,24 +714,8 @@ void XboardEngine::parseLine(const QString& line)
 	}
 	else if (command == "feature")
 	{
-		QRegExp rx("\\w+\\s*=\\s*(\"[^\"]*\"|\\d+)");
-		
-		int pos = 0;
-		
-		while ((pos = rx.indexIn(args, pos)) != -1)
-		{
-			QString cap = rx.cap();
-			int index = cap.indexOf('=');
-			if (index != -1)
-			{
-				QString feature = cap.left(index).trimmed();
-				QString val = cap.mid(index + 1).trimmed();
-				val.remove('\"');
-
-				setFeature(feature, val);
-			}
-
-			pos += rx.matchedLength();
+		for (const XboardFeature& feature : parseFeatures(args)) {
+			setFeature(feature.first, feature.second);
 		}
 	}
 	else if (command.startsWith("Illegal"))
@@ -793,4 +753,69 @@ void XboardEngine::sendOption(const QString& name, const QVariant& value)
 			write("option " + name + "=" + tmp);
 		}
 	}
+}
+
+QList<XboardFeature> XboardEngine::parseFeatures(const QString& featureArgs)
+{
+	QList<XboardFeature> features;
+	QRegularExpression re("(\\w+)\\s*=\\s*(\"[^\"]+\"|\\w+)");
+	auto i = re.globalMatch(featureArgs);
+
+	while (i.hasNext())
+	{
+		auto match = i.next();
+		auto feature = match.captured(1);
+		auto val = match.captured(2);
+		val.remove('\"');
+
+		features.append(std::make_pair(feature, val));
+	}
+
+	return features;
+}
+
+MoveEvaluation XboardEngine::parsePv(const QStringRef& pvString)
+{
+	bool ok = false;
+	int val = 0;
+	QStringRef ref(pvString);
+	MoveEvaluation eval;
+
+	// Search depth
+	QString depth(ref.toString());
+	if (!(depth.cend() - 1)->isDigit())
+		depth.chop(1);
+	eval.setDepth(depth.toInt());
+
+	// Evaluation
+	if ((ref = nextToken(ref)).isNull())
+		return MoveEvaluation();
+	val = ref.toString().toInt(&ok);
+	if (ok)
+	{
+		if (whiteEvalPov() && side() == Chess::Side::Black)
+			val = -val;
+		eval.setScore(adaptScore(val));
+	}
+
+	// Search time
+	if ((ref = nextToken(ref)).isNull())
+		return MoveEvaluation();
+	val = ref.toString().toInt(&ok);
+	if (ok)
+		eval.setTime(val * 10);
+
+	// Node count
+	if ((ref = nextToken(ref)).isNull())
+		return MoveEvaluation();
+	val = ref.toString().toULongLong(&ok);
+	if (ok)
+		eval.setNodeCount(val);
+
+	// Principal variation
+	if ((ref = nextToken(ref, true)).isNull())
+		return MoveEvaluation();
+	eval.setPv(ref.toString());
+
+	return eval;
 }

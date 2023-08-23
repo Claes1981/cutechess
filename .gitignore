@@ -1,7 +1,7 @@
 # main executables
 projects/gui/cutechess
 projects/cli/cutechess-cli
-cutechess.app/
+Cute Chess.app/
 cutechess.exe
 cutechess-cli.exe
 
@@ -17,6 +17,7 @@ tst_tb
 tst_pipereader
 tst_jsonparser
 tst_jsonserializer
+tst_xboardengine
 target_wrapper.sh
 
 # tool executables
@@ -34,10 +35,6 @@ Makefile
 
 # doxygen generated api documents
 docs/api/html/
-
-# generated documentation files
-docs/*.html
-docs/*.txt
 
 # temporary directories used by qmake and compiler
 .rcc/
@@ -63,6 +60,7 @@ Doxyfile
 # files created by Qt Creator
 *.pro.user*
 qtc-gdbmacros/
+CMakeLists.txt.user
 
 # files created by Mac OS X
 .DS_Store

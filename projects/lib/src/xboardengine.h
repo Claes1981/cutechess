@@ -22,6 +22,8 @@
 #include "chessengine.h"
 #include "board/board.h"
 
+using XboardFeature = std::pair<QString, QString>;
+
 /*!
  * \brief A chess engine which uses the Xboard chess engine communication protocol.
  *
@@ -42,6 +44,7 @@ class LIB_EXPORT XboardEngine : public ChessEngine
 
 	protected:
 		// Inherited from ChessEngine
+		virtual void applyConfiguration(const EngineConfiguration& configuration);
 		virtual bool sendPing();
 		virtual void sendStop();
 		virtual void sendQuit();
@@ -52,16 +55,23 @@ class LIB_EXPORT XboardEngine : public ChessEngine
 		virtual void sendOption(const QString& name, const QVariant& value);
 		virtual bool restartsBetweenGames() const;
 
+		/*! Parses a feature string from the engine. */
+		QList<XboardFeature> parseFeatures(const QString& featureArgs);
+
+		/*! Parses a principal valuation string from the engine. */
+		MoveEvaluation parsePv(const QStringRef& pvString);
+
+		/*! Parses an option string from the engine. */
+		EngineOption* parseOption(const QString& line);
+
 	protected slots:
 		// Inherited from ChessEngine
 		virtual void onTimeout();
 
-	private slots:
 		/*! Initializes the engine, and emits the 'ready' signal. */
 		void initialize();
 
 	private:
-		EngineOption* parseOption(const QString& line);
 		void setFeature(const QString& name, const QString& val);
 		void setForceMode(bool enable);
 		void sendTimeLeft();

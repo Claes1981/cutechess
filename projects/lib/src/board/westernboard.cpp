@@ -265,7 +265,7 @@ QString WesternBoard::sanMoveString(const Move& move)
 		}
 	}
 	if (needFile)
-		str += 'a' + square.file();
+		str += QChar('a' + square.file());
 	if (needRank)
 		str += QString::number(1 + square.rank());
 
@@ -1095,12 +1095,25 @@ void WesternBoard::generateMovesForPiece(QVarLengthArray<Move>& moves,
 		return;
 	}
 
-	if (pieceHasMovement(pieceType, KnightMovement))
+	if (pieceHasMovement(pieceType, square, KnightMovement))
 		generateHoppingMoves(square, m_knightOffsets, moves);
-	if (pieceHasMovement(pieceType, BishopMovement))
+	if (pieceHasMovement(pieceType, square, BishopMovement))
 		generateSlidingMoves(square, m_bishopOffsets, moves);
-	if (pieceHasMovement(pieceType, RookMovement))
+	if (pieceHasMovement(pieceType, square, RookMovement))
 		generateSlidingMoves(square, m_rookOffsets, moves);
+}
+
+bool WesternBoard::defendedByKnight(Side side, int square) const
+{
+	for (int i = 0; i < m_knightOffsets.size(); i++)
+	{
+		int targetSquare = square + m_knightOffsets[i];
+		Piece piece = pieceAt(targetSquare);
+		if (piece.side() == side
+		&&  pieceHasCaptureMovement(piece, targetSquare, KnightMovement))
+			return true;
+	}
+    return false;
 }
 
 bool WesternBoard::inCheck(Side side, int square) const
@@ -1133,9 +1146,10 @@ bool WesternBoard::inCheck(Side side, int square) const
 	// Knight, archbishop, chancellor attacks
 	for (int i = 0; i < m_knightOffsets.size(); i++)
 	{
-		piece = pieceAt(square + m_knightOffsets[i]);
+		int targetSquare = square + m_knightOffsets[i];
+		piece = pieceAt(targetSquare);
 		if (piece.side() == opSide
-		&&  pieceHasMovement(piece.type(), KnightMovement))
+		&&  pieceHasCaptureMovement(piece, targetSquare, KnightMovement))
 			return true;
 	}
 	
@@ -1152,7 +1166,7 @@ bool WesternBoard::inCheck(Side side, int square) const
 		{
 			if (!piece.isEmpty())
 			{
-				if (pieceHasMovement(piece.type(), BishopMovement))
+				if (pieceHasCaptureMovement(piece, targetSquare, BishopMovement))
 					return true;
 				break;
 			}
@@ -1173,7 +1187,7 @@ bool WesternBoard::inCheck(Side side, int square) const
 		{
 			if (!piece.isEmpty())
 			{
-				if (pieceHasMovement(piece.type(), RookMovement))
+				if (pieceHasCaptureMovement(piece, targetSquare, RookMovement))
 					return true;
 				break;
 			}
@@ -1204,24 +1218,7 @@ bool WesternBoard::isLegalPosition()
 		int source = move.sourceSquare();
 		int target = m_castleTarget[side][cside];
 		int offset = (source <= target) ? 1 : -1;
-		
-		if (source == target)
-		{
-			offset = (cside == KingSide) ? 1 : -1;
-			int i = target - offset;
-			for (;;)
-			{
-				i -= offset;
-				Piece piece(pieceAt(i));
 
-				if (piece.isWall() || piece.side() == side)
-					return true;
-				if (piece.side() == sideToMove()
-				&&  pieceHasMovement(piece.type(), RookMovement))
-					return false;
-			}
-		}
-		
 		for (int i = source; i != target; i += offset)
 		{
 			if (inCheck(side, i))
@@ -1236,10 +1233,22 @@ bool WesternBoard::vIsLegalMove(const Move& move)
 {
 	Q_ASSERT(!move.isNull());
 
-	if (!m_kingCanCapture
-	&&  move.sourceSquare() == m_kingSquare[sideToMove()]
-	&&  captureType(move) != Piece::NoPiece)
-		return false;
+	Side side(sideToMove());
+
+	if (move.sourceSquare() == m_kingSquare[side])
+	{
+		if (!m_kingCanCapture
+		&&  captureType(move) != Piece::NoPiece)
+			return false;
+
+		// No castling when in check
+		Piece piece = pieceAt(move.targetSquare());
+		if (m_hasCastling
+		&&  piece.type() == Rook
+		&&  piece.side() == side
+		&&  inCheck(side))
+			return false;
+	}
 
 	return Board::vIsLegalMove(move);
 }
@@ -1458,6 +1467,28 @@ Result WesternBoard::result()
 	}
 
 	return Result();
+}
+
+bool Chess::WesternBoard::winPossible(Chess::Side side) const
+{
+	// Find any piece besides the King
+	int minIndex = 2 * m_arwidth + 1;
+	for (int i = minIndex; i < arraySize() - minIndex - 1; i++)
+	{
+		Piece piece = pieceAt(i);
+		if (piece.side() == side && i != kingSquare(side))
+			return true;
+	}
+	if (variantHasDrops())
+	{
+		const QList<Piece>& reserveTypes = reservePieceTypes();
+		for (const Piece& ptype: reserveTypes)
+		{
+			if (reserveCount(ptype) > 0 && ptype.side() == side)
+				return true;
+		}
+	}
+	return false;
 }
 
 } // namespace Chess

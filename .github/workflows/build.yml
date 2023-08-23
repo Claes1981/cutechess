@@ -1,5 +1,9 @@
 name: build cutechess
-on: [push, pull_request]
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
 
 jobs:
     build:
@@ -7,62 +11,60 @@ jobs:
         runs-on: ${{ matrix.os }}
         strategy:
           matrix:
-            qt_version: [5.11.3, 5.12.9, 5.13.2, 5.14.2, 5.15.0]
+            qt_version: [5.15.2, 6.5.2]
             os: [windows-latest, ubuntu-latest, macos-latest]
         steps:
-            - uses: actions/checkout@v2
+            - uses: actions/checkout@v3
 
-            - name: install qt
-              uses: jurplel/install-qt-action@v2
+            - name: install qt 5.x
+              uses: jurplel/install-qt-action@v3
+              if: startsWith(matrix.qt_version, '5.')
               with:
                 version: ${{ matrix.qt_version }}
 
+            - name: install qt 6.x
+              uses: jurplel/install-qt-action@v3
+              if: startsWith(matrix.qt_version, '6.')
+              with:
+                version: ${{ matrix.qt_version }}
+                modules: 'qt5compat'
+
             - name: build cute chess
               if: matrix.os != 'windows-latest'
               run: |
-                  qmake
-                  make
+                  mkdir build
+                  cd build
+                  cmake ..
+                  cmake --build .
 
             - name: run unit tests
               if: matrix.os != 'windows-latest'
               run: |
-                  cd ${GITHUB_WORKSPACE}/projects/lib/tests/
-                  qmake
-                  make
-                  make check
+                  cd build
+                  make test
 
-            - name: run unit tests (json)
-              if: matrix.os != 'windows-latest'
+            - name: check manual pages
+              if: matrix.os == 'ubuntu-latest'
               run: |
-                  cd ${GITHUB_WORKSPACE}/projects/lib/components/json/tests/
-                  qmake
-                  make
-                  make check
+                  sudo apt install mandoc
+                  cd ${GITHUB_WORKSPACE}/docs/
+                  mandoc -T lint cutechess-cli.6
+                  mandoc -T lint cutechess-engines.json.5
 
             - name: build cute chess
               if: matrix.os == 'windows-latest'
               shell: cmd
               run: |
-                  call "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Auxiliary/Build/vcvars64.bat"
-                  qmake
-                  nmake
+                  call "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Auxiliary/Build/vcvars64.bat"
+                  mkdir build
+                  cd build
+                  cmake ..
+                  cmake --build . --config release
 
             - name: run unit tests
               if: matrix.os == 'windows-latest'
               shell: cmd
               run: |
-                  call "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Auxiliary/Build/vcvars64.bat"
-                  cd %GITHUB_WORKSPACE%\projects\lib\tests\
-                  qmake
-                  nmake
-                  nmake check
-
-            - name: run unit tests (json)
-              shell: cmd
-              if: matrix.os == 'windows-latest'
-              run: |
-                  call "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Auxiliary/Build/vcvars64.bat"
-                  cd %GITHUB_WORKSPACE%\projects\lib\components\json\tests\
-                  qmake
-                  nmake
-                  nmake check
+                  call "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Auxiliary/Build/vcvars64.bat"
+                  cd build
+                  ctest -C release

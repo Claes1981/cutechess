@@ -68,9 +68,8 @@ TournamentSettingsWidget::TournamentSettingsWidget(QWidget *parent)
 		ui->m_resultFormatCombo->addItem(it.key(), it.value());
 	ui->m_resultFormatCombo->setCurrentIndex(-1);
 
-	connect(ui->m_resultFormatCombo,
-		static_cast<void(QComboBox::*)(const QString &)>(&QComboBox::currentIndexChanged),
-		this, [=](const QString&)
+	connect(ui->m_resultFormatCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
+		this, [=]()
 	{
 		const QVariant value = ui->m_resultFormatCombo->currentData();
 		ui->m_resultFormatEdit->setText(value.toString());
@@ -141,6 +140,11 @@ bool TournamentSettingsWidget::swappingSides() const
 	return ui->m_swapCheck->isChecked();
 }
 
+bool TournamentSettingsWidget::reversingSchedule() const
+{
+	return ui->m_reverseCheck->isChecked();
+}
+
 QString TournamentSettingsWidget::resultFormat() const
 {
 	return ui->m_resultFormatEdit->text();
@@ -171,6 +175,7 @@ void TournamentSettingsWidget::readSettings()
 	ui->m_saveUnfinishedGamesCheck->setChecked(
 		s.value("save_unfinished_games", true).toBool());
 	ui->m_swapCheck->setChecked(s.value("swap_sides", true).toBool());
+	ui->m_reverseCheck->setChecked(s.value("reverse_schedule", false).toBool());
 
 	QString format = s.value("result_format").toString();
 	if (format.isEmpty())
@@ -248,6 +253,10 @@ void TournamentSettingsWidget::enableSettingsUpdates()
 	connect(ui->m_swapCheck, &QCheckBox::toggled, [=](bool checked)
 	{
 		QSettings().setValue("tournament/swap_sides", checked);
+	});
+	connect(ui->m_reverseCheck, &QCheckBox::toggled, [=](bool checked)
+	{
+		QSettings().setValue("tournament/reverse_schedule", checked);
 	});
 	connect(ui->m_resultFormatEdit, &QLineEdit::textChanged, [=](const QString &text)
 	{

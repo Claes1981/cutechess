@@ -185,7 +185,7 @@ QString SeirawanBoard::vFenString(Board::FenNotation notation) const
 			s.append(squareString(i).mid(0,1).toLower());
 	}
 
-	QStringList vfen = vfs.split(' ', QString::SkipEmptyParts);
+	QStringList vfen = vfs.split(' ', Qt::SkipEmptyParts);
 
 	if ((!vfen.isEmpty() && vfen.at(0)!= "-") || s.isEmpty())
 		s.append(vfen.at(0));

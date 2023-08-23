@@ -32,6 +32,7 @@
 #include "chessgiboard.h"
 #include "chigorinboard.h"
 #include "codrusboard.h"
+#include "connectboard.h"
 #include "coregalboard.h"
 #include "courierboard.h"
 #include "crazyhouseboard.h"
@@ -53,6 +54,7 @@
 #include "judkinsshogiboard.h"
 #include "kingofthehillboard.h"
 #include "knightmateboard.h"
+#include "knightrelayboard.h"
 #include "loopboard.h"
 #include "losalamosboard.h"
 #include "losersboard.h"
@@ -90,6 +92,7 @@ REGISTER_BOARD(BerolinaBoard, "berolina")
 REGISTER_BOARD(OukBoard, "cambodian")
 REGISTER_BOARD(CapablancaBoard, "capablanca")
 REGISTER_BOARD(CaparandomBoard, "caparandom")
+REGISTER_BOARD(ConnectBoard, "cfour")
 REGISTER_BOARD(ChancellorBoard, "chancellor")
 REGISTER_BOARD(ChangeOverBoard, "changeover")
 REGISTER_BOARD(ChecklessBoard, "checkless")
@@ -108,6 +111,8 @@ REGISTER_BOARD(ExtinctionBoard, "extinction")
 REGISTER_BOARD(KingletBoard, "kinglet")
 REGISTER_BOARD(FrcBoard, "fischerandom")
 REGISTER_BOARD(GiveawayBoard, "giveaway")
+REGISTER_BOARD(GomokuFreestyleBoard, "gomokufreestyle")
+REGISTER_BOARD(GomokuBoard, "gomoku")
 REGISTER_BOARD(GothicBoard, "gothic")
 REGISTER_BOARD(GrandBoard, "grand")
 REGISTER_BOARD(GridBoard, "grid")
@@ -122,6 +127,7 @@ REGISTER_BOARD(JudkinsShogiBoard, "judkins")
 REGISTER_BOARD(KarOukBoard,"karouk")
 REGISTER_BOARD(KingOfTheHillBoard, "kingofthehill")
 REGISTER_BOARD(KnightMateBoard, "knightmate")
+REGISTER_BOARD(KnightRelayBoard, "knightrelay")
 REGISTER_BOARD(LoopBoard, "loop")
 REGISTER_BOARD(LosAlamosBoard, "losalamos")
 REGISTER_BOARD(LosersBoard, "losers")
@@ -144,6 +150,7 @@ REGISTER_BOARD(StandardBoard, "standard")
 REGISTER_BOARD(SuicideBoard, "suicide")
 REGISTER_BOARD(SuperAndernachBoard, "superandernach")
 REGISTER_BOARD(ThreeKingsBoard, "threekings")
+REGISTER_BOARD(TicTacToeBoard, "tictactoe")
 REGISTER_BOARD(TwoKingsEachBoard, "twokings")
 REGISTER_BOARD(TwoKingsSymmetricalBoard, "twokingssymmetric")
 

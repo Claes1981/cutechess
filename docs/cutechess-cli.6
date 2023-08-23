@@ -39,7 +39,7 @@ is one of:
 Three-check Chess
 .It 5check
 Five-check Chess
-.It aiwok
+.It ai-wok
 Ai-Wok (Makruk variant)
 .It almost
 Almost Chess
@@ -63,6 +63,8 @@ Ouk Chatrang (Cambodian Chess)
 Capablanca Chess
 .It caparandom
 Capablanca Random Chess
+.It cfour
+Cfour (7x6, line up 4 to win)
 .It chancellor
 Chancellor Chess (9x9)
 .It changeover
@@ -97,6 +99,10 @@ Extinction Chess
 Fischer Random Chess / Chess 960
 .It giveaway
 Giveaway Chess (Losing Chess)
+.It gomoku
+Gomoku (15x15, exactly 5 in a row to win)
+.It gomokufreestyle
+Gomoku Free-Style (5 in a row to win)
 .It gothic
 Gothic Chess
 .It grand
@@ -127,6 +133,8 @@ Kinglet Chess
 King of the Hill Chess
 .It knightmate
 Knightmate
+.It knightrelay
+Knight-Relay Chess
 .It loop
 Loop Chess (Drop Chess Variant)
 .It losalamos
@@ -169,6 +177,8 @@ Suicide Chess (Losing Chess Variant)
 Super-Andernach Chess
 .It threekings
 Three Kings Chess
+.It tictactoe
+Tic-tac-toe
 .It twokings
 Two Kings Each Chess (Wild 9)
 .It twokingssymmetric
@@ -281,6 +291,10 @@ is reached.
 Set the interval for printing the ratings to
 .Ar n
 games.
+.It Fl outcomeinterval Ar n
+Set the interval for printing outcomes to
+.Ar n
+games.
 .It Fl debug
 Display all engine input and output.
 .It Fl openings Cm file Ns = Ns Ar file Cm format Ns = Ns Bo Cm epd | Cm pgn Ns Bc Cm order Ns = Ns Bo Cm random | Cm sequential Bc Cm plies Ns = Ns Ar plies Cm start Ns = Ns Ar start Cm policy Ns = Ns Bo Cm default | Cm encounter | Cm round Bc
@@ -382,10 +396,11 @@ Specify the
 .Ar format
 of result lists.
 .Ar Format
-can either be a comma separated
-list of fields or a format name. Format
+can either be a comma separated list of fields or a format name.
+Format
 .Cm help
-shows available named formats. The
+shows available named formats.
+The
 .Cm default
 format lists rank, name, elo, elo error, number of games,
 score percentage, and draw percentage of every player.
@@ -430,7 +445,7 @@ is the time increment per move in seconds.
 .Pp
 Infinite time control can be set with
 .Cm inf .
-.It Ic option. Ns Ar name Ns = Ns Ar value
+.It Ic option\&. Ns Ar name Ns = Ns Ar value
 Set custom engine option.
 .It Ic arg Ns = Ns Ar arg
 Pass
@@ -481,6 +496,10 @@ Enable pondering if the engine supports it.
 Set the search depth limit.
 .It Ic nodes Ns = Ns Ar count
 Set the node count limit.
+.It Ic tscale Ns = Ns Ar factor
+Scale engine timeouts by
+.Ar factor .
+Only use this option if necessary.
 .El
 .Sh EXAMPLES
 Play ten games between two Sloppy engines with a time control of 40
@@ -492,7 +511,7 @@ Play a single game between Atak and Glaurung engines with a time
 control of 40 moves in one minute and 30 seconds with one second
 increment:
 .Pp
-.Dl $ cutechess-cli \-engine name=Atak cmd=Atak32.exe dir=C:\eatak proto=xboard -engine cmd=glaurung proto=uci option.Threads=1 -both tc=40/1:30+1
+.Dl $ cutechess-cli \-engine name=Atak cmd=Atak32.exe dir=C:\eatak proto=xboard -engine cmd=glaurung proto=uci option.Threads=1 -each tc=40/1:30+1
 .Bl -bullet
 .It
 Use the name=Atak parameter because it's a Xboard protocol 1 engine
@@ -525,7 +544,7 @@ In each two-game encounter colors are switched between games and the
 same opening line is played in both games.
 .El
 .Sh SEE ALSO
-.Xr engines.json 5
+.Xr cutechess-engines.json 5
 .Sh AUTHORS
 The
 .Nm

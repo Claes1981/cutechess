@@ -30,7 +30,10 @@
 #include <QClipboard>
 #include <QWindow>
 #include <QSettings>
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 #include <QDesktopWidget>
+#endif
+#include <QSysInfo>
 
 #include <board/boardfactory.h>
 #include <chessgame.h>
@@ -57,7 +60,7 @@
 #include "boardview/boardscene.h"
 #include "tournamentresultsdlg.h"
 
-#ifdef QT_DEBUG
+#if 0
 #include <modeltest.h>
 #endif
 
@@ -89,7 +92,7 @@ MainWindow::MainWindow(ChessGame* game)
 
 	m_moveList = new MoveList(this);
 	m_tagsModel = new PgnTagsModel(this);
-	#ifdef QT_DEBUG
+	#if 0
 	new ModelTest(m_tagsModel, this);
 	#endif
 
@@ -191,11 +194,12 @@ void MainWindow::createActions()
 	m_minimizeAct = new QAction(tr("&Minimize"), this);
 	m_minimizeAct->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_M));
 
+	// Using three key codes on Qt 6 results in compilation error
 	m_showPreviousTabAct = new QAction(tr("Show &Previous Tab"), this);
 	#ifdef Q_OS_MAC
-	m_showPreviousTabAct->setShortcut(QKeySequence(Qt::MetaModifier + Qt::ShiftModifier + Qt::Key_Tab));
+	m_showPreviousTabAct->setShortcut(QKeySequence(tr("Meta+Shift+Tab")));
 	#else
-	m_showPreviousTabAct->setShortcut(QKeySequence(Qt::ControlModifier + Qt::ShiftModifier + Qt::Key_Tab));
+	m_showPreviousTabAct->setShortcut(QKeySequence(tr("Ctrl+Shift+Tab")));
 	#endif
 
 	m_showNextTabAct = new QAction(tr("Show &Next Tab"), this);
@@ -407,9 +411,11 @@ void MainWindow::readSettings()
 	s.beginGroup("mainwindow");
 
 	restoreGeometry(s.value("geometry").toByteArray());
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 	// Workaround for https://bugreports.qt.io/browse/QTBUG-16252
 	if (isMaximized())
 		setGeometry(QApplication::desktop()->availableGeometry(this));
+#endif
 	restoreState(s.value("window_state").toByteArray());
 
 	s.endGroup();
@@ -1012,6 +1018,7 @@ void MainWindow::showAboutDialog()
 	html += "<h3>" + QString("Cute Chess %1")
 		.arg(CuteChessApplication::applicationVersion()) + "</h3>";
 	html += "<p>" + tr("Using Qt version %1").arg(qVersion()) + "</p>";
+	html += "<p>" + tr("Running on %1/%2").arg(QSysInfo::prettyProductName()).arg(QSysInfo::currentCpuArchitecture()) + "</p>";
 	html += "<p>" + tr("Copyright 2008-2020 "
 			   "Cute Chess authors") + "</p>";
 	html += "<p>" + tr("This is free software; see the source for copying "

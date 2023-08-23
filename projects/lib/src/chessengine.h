@@ -22,6 +22,7 @@
 #include "chessplayer.h"
 #include <QVariant>
 #include <QStringList>
+#include <QStringRef>
 #include "engineconfiguration.h"
 
 class QIODevice;
@@ -43,6 +44,11 @@ class LIB_EXPORT ChessEngine : public ChessPlayer
 	Q_OBJECT
 
 	public:
+		static constexpr int defaultPingTimeout = 15000;
+		static constexpr int defaultQuitTimeout =  5000;
+		static constexpr int defaultIdleTimeout = 15000;
+		static constexpr int defaultProtocolStartTimeout = 35000;
+
 		/*!
 		 * The write mode used by \a write() when the engine is
 		 * being pinged. This doesn't affect the IO device's
@@ -76,7 +82,7 @@ class LIB_EXPORT ChessEngine : public ChessPlayer
 		void start();
 
 		/*! Applies \a configuration to the engine. */
-		void applyConfiguration(const EngineConfiguration& configuration);
+		virtual void applyConfiguration(const EngineConfiguration& configuration);
 
 		/*!
 		 * Sends a ping message (an echo request) to the engine to
@@ -270,8 +276,14 @@ class LIB_EXPORT ChessEngine : public ChessPlayer
 		/*! Clear the write buffer without flushing it. */
 		void clearWriteBuffer();
 
-	private slots:
+		/*! Called when the engine has not responded to the quit
+		 * command in time.
+		 */
 		void onQuitTimeout();
+
+		/*! Called when the engine has not initiated the chess
+		 * protocol in time.
+		 */
 		void onProtocolStartTimeout();
 
 	private:
@@ -282,6 +294,7 @@ class LIB_EXPORT ChessEngine : public ChessPlayer
 		bool m_pinging;
 		bool m_whiteEvalPov;
 		bool m_pondering;
+		double m_timeoutScale;
 		QTimer* m_pingTimer;
 		QTimer* m_quitTimer;
 		QTimer* m_idleTimer;
