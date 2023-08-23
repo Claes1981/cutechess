@@ -8,11 +8,11 @@ if(NOT CMAKE_BUILD_TYPE)
       FORCE)
 endif()
 
-set(CUTECHESS_MAJOR_VERSION 1)
-set(CUTECHESS_MINOR_VERSION 2)
-set(CUTECHESS_PATCH_VERSION 0)
-
-set(CUTECHESS_VERSION "${CUTECHESS_MAJOR_VERSION}.${CUTECHESS_MINOR_VERSION}.${CUTECHESS_PATCH_VERSION}")
+set(CUTECHESS_VERSION "unknown")
+if(EXISTS ${CMAKE_SOURCE_DIR}/.version)
+	file(READ ${CMAKE_SOURCE_DIR}/.version CUTECHESS_VERSION)
+	string(REGEX REPLACE "(\r?\n)+" "" CUTECHESS_VERSION "${CUTECHESS_VERSION}")
+endif()
 
 option(WITH_TESTS "Enable building of unit tests" ON)
 
@@ -32,6 +32,8 @@ find_package(Qt6 COMPONENTS ${QT_COMPONENTS} Core5Compat QUIET)
 if(NOT Qt6_FOUND)
 	find_package(Qt5 5.15 REQUIRED COMPONENTS ${QT_COMPONENTS})
 endif()
+
+include(GNUInstallDirs)
 
 message(STATUS "Setting up build for Cute Chess version ${CUTECHESS_VERSION}")
 
@@ -256,7 +258,6 @@ add_executable(gui
 	projects/gui/src/pgnimporter.cpp
 
 	projects/gui/ui/settingsdlg.ui
-	projects/gui/ui/ui.pri
 	projects/gui/ui/engineconfigdlg.ui
 	projects/gui/ui/timecontroldlg.ui
 	projects/gui/ui/engineselectiondlg.ui
@@ -275,8 +276,15 @@ add_executable(gui
 	projects/gui/res/icons/icons.qrc
 )
 
+if(WIN32)
+	target_sources(gui PRIVATE
+		projects/gui/res/icons/cutechess_win.rc
+	)
+endif()
+
 set_target_properties(gui PROPERTIES OUTPUT_NAME cutechess)
 set_target_properties(gui PROPERTIES AUTOUIC_SEARCH_PATHS ${CMAKE_CURRENT_SOURCE_DIR}/projects/gui/ui)
+set_target_properties(gui PROPERTIES WIN32_EXECUTABLE ON)
 
 target_include_directories(gui PRIVATE
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/projects/gui/3rdparty/qcustomplot>
@@ -310,3 +318,10 @@ if(WITH_TESTS)
 		add_unit_test(pipereader projects/lib/tests/pipereader/tst_pipereader.cpp)
 	endif()
 endif()
+
+install(TARGETS cli DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Runtime)
+install(TARGETS gui DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Runtime)
+install(FILES dist/linux/cutechess.desktop DESTINATION ${CMAKE_INSTALL_DATADIR}/applications COMPONENT Runtime)
+install(FILES projects/gui/res/icons/cutechess_256x256.png DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/application/256x256/apps/ RENAME cutechess.png COMPONENT Runtime)
+install(FILES docs/cutechess-cli.6 DESTINATION ${CMAKE_INSTALL_MANDIR}/man6/ COMPONENT Documentation)
+install(FILES docs/cutechess-engines.json.5 DESTINATION ${CMAKE_INSTALL_MANDIR}/man5/ COMPONENT Documentation)
