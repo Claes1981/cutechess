@@ -33,7 +33,7 @@
 #include "engineconfigurationmodel.h"
 #include "engineconfigproxymodel.h"
 #include "engineconfigurationdlg.h"
-#include "timecontroldlg.h"
+#include "pairtimecontroldlg.h"
 #include "stringvalidator.h"
 
 #if 0
@@ -47,6 +47,7 @@ NewGameDialog::NewGameDialog(EngineManager* engineManager, QWidget* parent)
 {
 	Q_ASSERT(engineManager != nullptr);
 	ui->setupUi(this);
+	ui->m_gameSettings->enableSplitTimeControls(true);
 
 	m_engines = new EngineConfigurationModel(m_engineManager, this);
 	#if 0
@@ -112,7 +113,12 @@ ChessGame* NewGameDialog::createGame() const
 	pgn->setSite(QSettings().value("pgn/site").toString());
 	auto game = new ChessGame(board, pgn);
 
-	game->setTimeControl(ui->m_gameSettings->timeControl());
+	for (int i = 0; i < 2; i++)
+	{
+		auto side = Chess::Side::Type(i);
+		game->setTimeControl(ui->m_gameSettings->timeControl(side), side);
+	}
+
 	game->setAdjudicator(ui->m_gameSettings->adjudicator());
 
 	auto suite = ui->m_gameSettings->openingSuite();
